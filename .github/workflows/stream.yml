@@ -11,11 +11,37 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Install FFmpeg
-        run: sudo apt update && sudo apt install -y ffmpeg
+      - name: Install dependencies
+        run: sudo apt update && sudo apt install -y ffmpeg curl
+
+      - name: Check M3U8 stream with ffprobe
+        env:
+          M3U8_URL: ${{ secrets.M3U8_URL }}
+        run: |
+          echo "Checking M3U8 stream validity with ffprobe..."
+          ffprobe -v error -timeout 5000000 -analyzeduration 3000000 -probesize 1000000 -show_streams "$M3U8_URL" > ffprobe.log 2>&1
+          if grep -q "Invalid data found" ffprobe.log; then
+            echo "Error: Invalid M3U8 stream."
+            cat ffprobe.log
+            exit 1
+          fi
+          if grep -q "404 Not Found" ffprobe.log; then
+            echo "Error: M3U8 stream not found (404)."
+            cat ffprobe.log
+            exit 1
+          fi
+          echo "M3U8 stream looks good."
+
+      - name: Check Facebook RTMP server availability
+        run: |
+          echo "Checking Facebook RTMP server connectivity..."
+          timeout 5 bash -c "echo > /dev/tcp/live-api-s.facebook.com/443" || (echo "Cannot connect to Facebook RTMP server on port 443." && exit 1)
+          echo "Facebook RTMP server is reachable."
 
       - name: Start livestream
-        run: |
-          bash main.sh
         env:
           STREAM_KEY: ${{ secrets.STREAM_KEY }}
+          M3U8_URL: ${{ secrets.M3U8_URL }}
+        run: |
+          echo "Starting livestream..."
+          bash main.sh
