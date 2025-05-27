@@ -1,22 +1,7 @@
-name: Livestream to Facebook
+#!/bin/bash
+echo "Starting FFmpeg livestream..."
 
-on:
-  workflow_dispatch:
-
-jobs:
-  stream:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Install FFmpeg
-        run: sudo apt update && sudo apt install -y ffmpeg
-
-      - name: Start livestream
-        run: |
-          chmod +x main.sh
-          ./main.sh
-        env:
-          STREAM_KEY: ${{ secrets.STREAM_KEY }}
+ffmpeg -re -i "$M3U8_URL" \
+  -c:v libx264 -preset veryfast -maxrate 3000k -bufsize 6000k \
+  -c:a aac -b:a 128k -ar 44100 \
+  -f flv "rtmps://live-api-s.facebook.com:443/rtmp/$STREAM_KEY"
