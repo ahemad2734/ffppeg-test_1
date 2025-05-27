@@ -1,4 +1,3 @@
-
 name: Livestream to Facebook
 
 on:
@@ -16,4 +15,8 @@ jobs:
         run: sudo apt update && sudo apt install -y ffmpeg
 
       - name: Start livestream
-        run: ./main.sh
+        run: |
+          chmod +x main.sh
+          ./main.sh
+        env:
+          STREAM_KEY: ${{ secrets.STREAM_KEY }}
